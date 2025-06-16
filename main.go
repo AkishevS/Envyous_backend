@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +9,8 @@ import (
 	_ "github.com/lib/pq"
 
 	"envyous_token_backend/handlers"
+	"envyous_token_backend/middleware"
+	"envyous_token_backend/pkg/db"
 	"envyous_token_backend/routes"
 )
 
@@ -26,16 +27,18 @@ func withCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
-		log.Fatal("Failed to connect to DB:", err)
-	}
+	database := db.InitDB()
+	middleware.APIKey = os.Getenv("API_KEY")
 	log.Println("Подключение к базе данных успешно")
 
 	r := mux.NewRouter()
 	r.Use(withCORS)
+	r.Use(middleware.APIKeyAuthMiddleware)
 
-	taskHandler := &handlers.TaskHandler{DB: db}
+	taskHandler := &handlers.TaskHandler{DB: database}
+	routes.RegisterTaskRoutes(r, taskHandler)
+	apiHandlers := routes.NewHandlers(database)
+	routes.RegisterHandlers(r, apiHandlers)
 	routes.RegisterTaskRoutes(r, taskHandler)
 
 	log.Println("Запуск сервера на порту 8080...")

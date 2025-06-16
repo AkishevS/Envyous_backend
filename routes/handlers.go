@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
 
 	"envyous_token_backend/middleware"
@@ -75,4 +76,10 @@ func (h *Handlers) Referrals(w http.ResponseWriter, r *http.Request) {
 		referrals = append(referrals, inviteeID)
 	}
 	json.NewEncoder(w).Encode(referrals)
+}
+
+func RegisterHandlers(router *mux.Router, h *Handlers) {
+	router.HandleFunc("/profile/{chat_id}", h.ProfileHandler).Methods("GET")
+	router.HandleFunc("/leaderboard", h.Leaderboard).Methods("GET")
+	router.HandleFunc("/referrals", h.Referrals).Methods("GET")
 }

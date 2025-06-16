@@ -253,3 +253,21 @@ func (h *TaskHandler) ClaimFarmingReward(w http.ResponseWriter, r *http.Request)
 	}
 	json.NewEncoder(w).Encode(response)
 }
+
+func (h *TaskHandler) TapCoin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	var req struct {
+		ChatID int64 `json:"chat_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error": "invalid JSON"}`, http.StatusBadRequest)
+		return
+	}
+	var newBalance int
+	err := h.DB.QueryRow(`UPDATE users SET balance = balance + 1 WHERE chat_id = $1 RETURNING balance`, req.ChatID).Scan(&newBalance)
+	if err != nil {
+		http.Error(w, `{"error": "db error"}`, http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]int{"new_balance": newBalance})
+}
